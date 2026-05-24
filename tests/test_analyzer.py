@@ -4,6 +4,7 @@ import textwrap
 from pathlib import Path
 
 from reposurgeon.analyzer import PythonAnalyzer, CodeEntity
+from reposurgeon.analyzer.typescript import TypeScriptAnalyzer
 
 
 def test_python_analyzer_classes():
@@ -116,3 +117,56 @@ def test_code_entity_fields():
     assert entity.kind == "function"
     assert entity.parent == "MyClass"
     assert entity.metadata["async"] is True
+
+
+def test_typescript_analyzer_classes(tmp_path):
+    """Detects TypeScript class definitions."""
+    code = """
+    class UserService {
+        getUser(id: number): User | null {
+            return null;
+        }
+    }
+
+    export class AdminService extends UserService {
+        banUser(id: number): void {}
+    }
+    """
+    ts_file = tmp_path / "test.ts"
+    ts_file.write_text(code)
+
+    analyzer = TypeScriptAnalyzer()
+    entities = analyzer.analyze_file(ts_file)
+
+    classes = [e for e in entities if e.kind == "class"]
+    assert len(classes) == 2
+    assert classes[0].name == "UserService"
+    assert classes[1].name == "AdminService"
+
+
+def test_typescript_analyzer_functions(tmp_path):
+    """Detects TypeScript function definitions."""
+    code = """
+    function calculateTotal(items: number[]): number {
+        return items.reduce((a, b) => a + b, 0);
+    }
+
+    export async function fetchData(url: string): Promise<Response> {
+        return fetch(url);
+    }
+
+    const getValue = (key: string): string | undefined => {
+        return cache.get(key);
+    };
+    """
+    ts_file = tmp_path / "test.ts"
+    ts_file.write_text(code)
+
+    analyzer = TypeScriptAnalyzer()
+    entities = analyzer.analyze_file(ts_file)
+
+    functions = [e for e in entities if e.kind == "function"]
+    assert len(functions) >= 2
+    names = {f.name for f in functions}
+    assert "calculateTotal" in names
+    assert "fetchData" in names
