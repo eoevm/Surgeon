@@ -20,7 +20,7 @@ def test_refactor_requires_description():
 
 
 def test_refactor_with_description():
-    """refactor command accepts description."""
+    """refactor command accepts description and runs pipeline (fails on fake URL)."""
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -33,9 +33,10 @@ def test_refactor_with_description():
             "--model", "gpt-4o-mini",
         ],
     )
-    assert result.exit_code == 0
+    # Pipeline will fail because clone fails on fake URL
+    assert result.exit_code == 1
     assert "RepoSurgeon" in result.output
-    assert "Dry run mode" in result.output
+    assert "Pipeline failed" in result.output
 
 
 def test_analyze_command():

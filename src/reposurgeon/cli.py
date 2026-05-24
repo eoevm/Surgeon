@@ -2,6 +2,7 @@
 
 import click
 from rich.console import Console
+from rich.panel import Panel
 
 console = Console()
 
@@ -46,15 +47,32 @@ def refactor(repo_url, description, branch, dry_run, model):
         reposurgeon refactor https://github.com/user/repo \\
             -d "Migrate all class-based views to function-based views"
     """
-    console.print(f"[bold blue]RepoSurgeon[/] v0.1.0")
-    console.print(f"Repo: {repo_url}")
-    console.print(f"Task: {description}")
+    from .pipeline import run_pipeline
 
-    if dry_run:
-        console.print("[yellow]Dry run mode — will plan but not execute.[/]")
+    console.print(Panel.fit(
+        "[bold blue]RepoSurgeon[/] v0.1.0 — Autonomous Refactoring Agent",
+        border_style="blue",
+    ))
 
-    # Pipeline will be wired in later tasks
-    console.print("[dim]Pipeline integration coming soon...[/dim]")
+    try:
+        pr_url = run_pipeline(
+            repo_url=repo_url,
+            description=description,
+            branch=branch,
+            dry_run=dry_run,
+            model=model,
+        )
+
+        if dry_run:
+            console.print("[yellow]Dry run — no changes made[/]")
+        elif pr_url:
+            console.print(f"\n[green bold]✓ PR ready for review:[/] {pr_url}")
+        else:
+            console.print("\n[yellow]Refactor completed locally — push branch to create PR[/]")
+
+    except Exception as e:
+        console.print(f"[red bold]Pipeline failed:[/] {e}")
+        raise SystemExit(1)
 
 
 @main.command()
